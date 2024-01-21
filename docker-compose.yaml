@@ -1,0 +1,124 @@
+version: '3.8'
+
+services:
+
+  postgres:
+    image: postgres:14
+    container_name: postgres_container
+    restart: always
+    environment:
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready", "-d", "postgres"]
+      interval: 30s
+      timeout: 60s
+      retries: 5
+      start_period: 80s
+
+  redis:
+    image: redis    
+    ports:
+     - "6379:6379"
+
+  client:
+    image: microkit/client:${APP_VERSION:-latest}
+    container_name: client_container
+    restart: always
+    ports:
+      - 80:80
+    environment:
+      - SERVER_HOST_NAME
+      - SERVER_PORT
+      - CLIENT_PORT
+
+  server:
+    image: microkit/server:${APP_VERSION:-latest}
+    container_name: server_container
+    restart: always
+    ports:
+      - '${SERVER_PORT}:8000'
+    environment:
+      - CRYPTO_INTERNAL_KEY
+      - SERVER_BASE_URL
+      - PORT
+      - JWT_SECRET
+      - CRYPTO_AES_KEY
+      - USERS_URL
+      - BILLING_URL
+      - POSTGRES_PASSWORD
+      - POSTGRES_USERNAME
+      - POSTGRES_DATABASE
+      - POSTGRES_HOST
+      - POSTGRES_DIALECT
+      - POSTGRES_PORT
+      - CLIENT_BASE_URL
+      - MAILER_CONTACT_ADDRESS
+      - PRODCER_TYPE
+      - ADMIN_EMAILS
+    depends_on:
+      - postgres
+        
+
+  configurations-parser:
+    image: microkit/configurations-parser:${APP_VERSION:-latest}
+    container_name: configurations-parser_container
+    restart: always
+    environment:
+      - SERVER_BASE_URL=${SERVER_HOST_NAME}:${SERVER_PORT:-80}
+      - REDIS_HOST
+      - REDIS_PASSWOR
+    depends_on:
+      - redis
+
+  features-parser:
+    image: microkit/features-parser:${APP_VERSION:-latest}
+    container_name: features-parser_container
+    restart: always
+    environment:
+      - SERVER_BASE_URL=${SERVER_HOST_NAME}:${SERVER_PORT:-80}
+      - REDIS_HOST
+      - REDIS_PASSWOR
+    depends_on:
+      - redis
+
+  access-log-parser:
+    image: microkit/access-log-parser:${APP_VERSION:-latest}
+    container_name: access-log-parser_container
+    restart: always
+    environment:
+      - SERVER_BASE_URL=${SERVER_HOST_NAME}:${SERVER_PORT:-80}
+      - REDIS_HOST
+      - REDIS_PASSWOR
+    depends_on:
+      - redis
+
+  notifier:
+    image: microkit/notifier:${APP_VERSION:-latest}
+    container_name: notifier_container
+    restart: always
+    environment:
+      - SERVER_BASE_URL=${SERVER_HOST_NAME}:${SERVER_PORT:-80}
+      - REDIS_HOST
+      - REDIS_PASSWOR
+      -  NOTIFIER_FROM
+    depends_on:
+      - redis
+
+
+  sdk-api:
+    image: microkit/sdk-api:${APP_VERSION:-latest}
+    container_name: sdk-api_container
+    restart: always
+    environment:
+      - SERVER_PORT=:${SDK_API_PORT:-8030}
+      - REDIS_HOST
+    ports:
+      - '${SDK_API_PORT}:${SDK_API_PORT}'
+    depends_on:
+      - redis
+
+volumes:
+  pg_data:
