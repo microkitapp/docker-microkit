@@ -26,8 +26,6 @@ git clone https://github.com/microkitapp/docker-microkit.git
 cd docker-microkit
 ```
 
-Replace `[repository-url]` and `[repository-name]` with the actual URL and name of your repository.
-
 ### Step 2: Generate Secret Keys
 
 Run the `generate_secrets.sh` script to generate secure keys:
